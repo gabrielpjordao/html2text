@@ -154,12 +154,17 @@ def google_has_height(style):
 def google_text_emphasis(style):
     """return a list of all emphasis modifiers of the element"""
     emphasis = []
-    if 'text-decoration' in style:
-        emphasis.append(style['text-decoration'])
-    if 'font-style' in style:
-        emphasis.append(style['font-style'])
-    if 'font-weight' in style:
-        emphasis.append(style['font-weight'])
+
+    handled_styles = [
+        'text-decoration',
+        'font-style',
+        'font-weight',
+        'text-align'
+    ]
+    for style_name in handled_styles:
+        if style_name in style:
+            emphasis.append(style[style_name])
+
     return emphasis
 
 def google_fixed_width_font(style):
@@ -197,6 +202,7 @@ class HTML2Text(HTMLParser.HTMLParser):
         self.ul_item_mark = '*'
         self.emphasis_mark = '_'
         self.strong_mark = '**'
+        self.center_mark = '->'
 
         if out is None:
             self.out = self.outtextf
@@ -318,6 +324,7 @@ class HTML2Text(HTMLParser.HTMLParser):
 
         # handle Google's text emphasis
         strikethrough =  'line-through' in tag_emphasis and self.hide_strikethrough
+        centered = 'center' in tag_emphasis and not 'center' in parent_emphasis
         bold = 'bold' in tag_emphasis and not 'bold' in parent_emphasis
         italic = 'italic' in tag_emphasis and not 'italic' in parent_emphasis
         fixed = google_fixed_width_font(tag_style) and not \
@@ -326,6 +333,9 @@ class HTML2Text(HTMLParser.HTMLParser):
         if start:
             # crossed-out text must be handled before other attributes
             # in order not to output qualifiers unnecessarily
+            if centered:
+                self.o(self.center_mark)
+                self.drop_white_space += 1
             if bold or italic or fixed:
                 self.emphasis += 1
             if strikethrough:
@@ -726,7 +736,6 @@ class HTML2Text(HTMLParser.HTMLParser):
         """Wrap all paragraphs in the provided text."""
         if not self.body_width:
             return text
-
         assert wrap, "Requires Python 2.3."
         result = ''
         newlines = 0
